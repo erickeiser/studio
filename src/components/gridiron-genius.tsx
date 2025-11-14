@@ -32,9 +32,16 @@ type DrawingColor = 'hsl(var(--accent))' | 'hsl(var(--foreground))' | '#ff0000';
 let idCounter = 0;
 const getUniqueId = () => (idCounter++).toString();
 
+const initialPlayers: Player[] = [
+  { id: getUniqueId(), type: 'qb', x: 533.33 / 2, y: 450 },
+  { id: getUniqueId(), type: 'red', x: 533.33 / 2 - 100, y: 400 },
+  { id: getUniqueId(), type: 'blue', x: 533.33 / 2 + 100, y: 400 },
+  { id: getUniqueId(), type: 'green', x: 533.33 / 2 - 50, y: 350 },
+  { id: getUniqueId(), type: 'yellow', x: 533.33 / 2 + 50, y: 350 },
+];
 
 export function GridironGenius() {
-  const [history, setHistory] = useState<{ players: Player[]; routes: Route[] }[]>([{ players: [], routes: [] }]);
+  const [history, setHistory] = useState<{ players: Player[]; routes: Route[] }[]>([{ players: initialPlayers, routes: [] }]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const players = history[historyIndex].players;
