@@ -2,7 +2,7 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -33,9 +33,10 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  const auth = getAuth(firebaseApp);
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
+    auth,
     firestore: getFirestore(firebaseApp)
   };
 }
@@ -48,3 +49,17 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
+
+// This is a re-export of the signInAnonymously function from the non-blocking-login module.
+// It's provided here for convenience.
+import { initiateAnonymousSignIn as ias } from './non-blocking-login';
+import { getAuth as getFirebaseAuth } from 'firebase/auth'; // Import getAuth directly for this specific use case
+
+// This function is intended to be called from a client component where the Firebase context is not yet available,
+// but an auth action needs to be initiated.
+export function initiateAnonymousSignIn(): void {
+  // We need to ensure Firebase is initialized before getting the auth instance.
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const auth = getFirebaseAuth(app);
+  ias(auth);
+}
