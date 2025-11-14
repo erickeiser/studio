@@ -18,6 +18,10 @@ import { Field } from '@/components/field';
 
 type Tool = 'cursor' | 'draw-solid' | 'draw-dashed' | 'eraser';
 
+let idCounter = 0;
+const getUniqueId = () => (idCounter++).toString();
+
+
 export function GridironGenius() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -40,7 +44,7 @@ export function GridironGenius() {
 
   const addPlayer = (type: PlayerType) => {
     const newPlayer: Player = {
-      id: crypto.randomUUID(),
+      id: getUniqueId(),
       x: 533.33 / 2,
       y: 800 / 2,
       type,
@@ -77,7 +81,7 @@ export function GridironGenius() {
   const handleMouseUp = () => {
     if (isDrawing && drawingPath) {
       const newRoute: Route = {
-        id: crypto.randomUUID(),
+        id: getUniqueId(),
         path: drawingPath,
         style: activeTool === 'draw-dashed' ? 'dashed' : 'solid',
         color: 'hsl(var(--accent))',
