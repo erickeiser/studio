@@ -15,8 +15,16 @@ export interface Route {
 }
 
 export interface Play {
-  id: string;
+  id?: string;
   name: string;
   players: Player[];
   routes: Route[];
+}
+
+export interface SavedPlay {
+  id: string;
+  name: string;
+  diagram: string;
+  createdAt: string;
+  lastModified: string;
 }

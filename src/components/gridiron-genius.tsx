@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { collection } from 'firebase/firestore';
 
-import type { Player, Route, Play, PlayerType } from '@/lib/types';
+import type { Player, Route, Play, PlayerType, SavedPlay } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { initiateAnonymousSignIn, addDocumentNonBlocking } from '@/firebase';
 import { useToast } from "@/hooks/use-toast"
@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/field';
 import { SavePlayDialog } from '@/components/save-play-dialog';
 import { Separator } from '@/components/ui/separator';
+import { Playbook } from './playbook';
 
 type Tool = 'cursor' | 'draw-solid' | 'draw-dashed' | 'eraser';
 type DrawingColor = 'hsl(var(--accent))' | 'hsl(var(--foreground))' | '#ff0000';
@@ -63,6 +64,11 @@ export function GridironGenius() {
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
+
+  const loadState = (players: Player[], routes: Route[]) => {
+    setHistory([{ players, routes }]);
+    setHistoryIndex(0);
+  }
 
   const handleUndo = () => {
     if (historyIndex > 0) {
@@ -197,6 +203,24 @@ export function GridironGenius() {
     }
   };
 
+  const handleLoadPlay = (play: SavedPlay) => {
+    try {
+      const { players, routes } = JSON.parse(play.diagram);
+      loadState(players, routes);
+       toast({
+        title: 'Play Loaded',
+        description: `"${play.name}" has been loaded onto the field.`,
+      });
+    } catch (error) {
+      console.error("Error loading play:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Load Failed',
+        description: 'Could not load the play diagram.',
+      });
+    }
+  };
+
 
   const ToolButton = ({ tool, icon: Icon, label }: { tool: Tool; icon: React.ElementType; label: string }) => (
     <Button
@@ -266,6 +290,10 @@ export function GridironGenius() {
             </CardContent>
           </Card>
 
+          <Playbook
+            onLoadPlay={handleLoadPlay}
+          />
+          
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Actions</CardTitle>
