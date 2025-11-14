@@ -11,7 +11,7 @@ import {
   Save,
   Undo,
 } from 'lucide-react';
-import { doc, collection } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 
 import type { Player, Route, Play, PlayerType } from '@/lib/types';
 import { useFirestore, useUser } from '@/firebase';
@@ -22,8 +22,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/field';
 import { SavePlayDialog } from '@/components/save-play-dialog';
+import { Separator } from '@/components/ui/separator';
 
 type Tool = 'cursor' | 'draw-solid' | 'draw-dashed' | 'eraser';
+type DrawingColor = 'hsl(var(--accent))' | 'hsl(var(--foreground))' | '#ff0000';
+
 
 let idCounter = 0;
 const getUniqueId = () => (idCounter++).toString();
@@ -37,6 +40,7 @@ export function GridironGenius() {
   const routes = history[historyIndex].routes;
 
   const [activeTool, setActiveTool] = useState<Tool>('cursor');
+  const [drawingColor, setDrawingColor] = useState<DrawingColor>('hsl(var(--accent))');
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingPath, setDrawingPath] = useState<string | null>(null);
   const [draggedPlayerId, setDraggedPlayerId] = useState<string | null>(null);
@@ -66,13 +70,23 @@ export function GridironGenius() {
     }
   };
 
-  const getCoords = (e: React.MouseEvent<HTMLDivElement>) => {
+  const getCoords = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     if (!fieldRef.current) return { x: 0, y: 0 };
     const rect = fieldRef.current.getBoundingClientRect();
     const fieldWidth = 533.33;
     const fieldHeight = 800;
-    const x = ((e.clientX - rect.left) / rect.width) * fieldWidth;
-    const y = ((e.clientY - rect.top) / rect.height) * fieldHeight;
+    
+    let clientX, clientY;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const x = ((clientX - rect.left) / rect.width) * fieldWidth;
+    const y = ((clientY - rect.top) / rect.height) * fieldHeight;
     return { x, y };
   };
 
@@ -86,7 +100,7 @@ export function GridironGenius() {
     updateState([...players, newPlayer], routes);
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleDrawStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     if (activeTool === 'cursor') return;
     if (activeTool.startsWith('draw')) {
       setIsDrawing(true);
@@ -95,7 +109,7 @@ export function GridironGenius() {
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleDrawMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     const { x, y } = getCoords(e);
     if (isDrawing && drawingPath) {
       setDrawingPath(prev => `${prev} L ${x} ${y}`);
@@ -107,24 +121,22 @@ export function GridironGenius() {
           ? { ...p, x: Math.min(Math.max(x, 15), fieldWidth - 15), y: Math.min(Math.max(y, 15), fieldHeight - 15) }
           : p
       );
-      // We don't want to create a history entry for every mouse move, so we update the current state directly
       const currentHistory = [...history];
       currentHistory[historyIndex] = { ...currentHistory[historyIndex], players: newPlayers };
       setHistory(currentHistory);
     }
   };
 
-  const handleMouseUp = () => {
+  const handleDrawEnd = () => {
     if (isDrawing && drawingPath) {
       const newRoute: Route = {
         id: getUniqueId(),
         path: drawingPath,
         style: activeTool === 'draw-dashed' ? 'dashed' : 'solid',
-        color: 'hsl(var(--accent))',
+        color: drawingColor,
       };
       updateState(players, [...routes, newRoute]);
     } else if (draggedPlayerId) {
-      // Finalize player position in history
       updateState(players, routes);
     }
     setIsDrawing(false);
@@ -132,7 +144,7 @@ export function GridironGenius() {
     setDraggedPlayerId(null);
   };
 
-  const handlePlayerMouseDown = (e: React.MouseEvent<HTMLDivElement>, id: string) => {
+  const handlePlayerMouseDown = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>, id: string) => {
     e.stopPropagation();
     if (activeTool === 'cursor') {
       setDraggedPlayerId(id);
@@ -156,14 +168,12 @@ export function GridironGenius() {
       return;
     }
     
-    // For now, we'll assume a single, hardcoded playbook per user.
-    // In a future version, we could allow users to create and select from multiple playbooks.
     const playbookId = 'my-playbook';
 
     const playData = {
       name: playName,
       playbookId,
-      diagram: JSON.stringify({ players, routes }), // Store players and routes
+      diagram: JSON.stringify({ players, routes }),
       createdAt: new Date().toISOString(),
       lastModified: new Date().toISOString(),
     };
@@ -199,6 +209,18 @@ export function GridironGenius() {
       {label}
     </Button>
   );
+  
+  const ColorButton = ({ color, label }: { color: DrawingColor, label: string }) => (
+    <Button
+      variant={drawingColor === color ? 'secondary' : 'ghost'}
+      size="sm"
+      onClick={() => setDrawingColor(color)}
+      className="w-full justify-start"
+    >
+      <div className="mr-2 h-4 w-4 rounded-full border" style={{ backgroundColor: color }} />
+      {label}
+    </Button>
+  );
 
   return (
     <>
@@ -222,6 +244,10 @@ export function GridironGenius() {
               <ToolButton tool="draw-solid" icon={PenLine} label="Draw Route (Solid)" />
               <ToolButton tool="draw-dashed" icon={PenLine} label="Draw Route (Dashed)" />
               <ToolButton tool="eraser" icon={Eraser} label="Eraser" />
+              <Separator />
+              <ColorButton color="hsl(var(--accent))" label="Orange" />
+              <ColorButton color="hsl(var(--foreground))" label="Black" />
+              <ColorButton color="#ff0000" label="Red" />
             </CardContent>
           </Card>
 
@@ -265,11 +291,11 @@ export function GridironGenius() {
               routes={routes}
               drawingPath={drawingPath}
               drawingStyle={activeTool === 'draw-dashed' ? 'dashed' : 'solid'}
-              drawingColor="hsl(var(--accent))"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onPlayerMouseDown={handlePlayerMouseDown}
+              drawingColor={drawingColor}
+              onDrawStart={handleDrawStart}
+              onDrawMove={handleDrawMove}
+              onDrawEnd={handleDrawEnd}
+              onPlayerAction={handlePlayerMouseDown}
             />
            </div>
         </main>

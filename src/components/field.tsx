@@ -8,10 +8,10 @@ interface FieldProps {
   drawingPath: string | null;
   drawingStyle: 'solid' | 'dashed';
   drawingColor: string;
-  onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
-  onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void;
-  onMouseUp: (e: React.MouseEvent<HTMLDivElement>) => void;
-  onPlayerMouseDown: (e: React.MouseEvent<HTMLDivElement>, id: string) => void;
+  onDrawStart: (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => void;
+  onDrawMove: (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => void;
+  onDrawEnd: (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => void;
+  onPlayerAction: (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>, id: string) => void;
 }
 
 export function Field({
@@ -20,10 +20,10 @@ export function Field({
   drawingPath,
   drawingStyle,
   drawingColor,
-  onMouseDown,
-  onMouseMove,
-  onMouseUp,
-  onPlayerMouseDown,
+  onDrawStart,
+  onDrawMove,
+  onDrawEnd,
+  onPlayerAction,
 }: FieldProps) {
   const fieldWidth = 533.33;
   const fieldHeight = 800;
@@ -37,10 +37,9 @@ export function Field({
     >
       <rect width={fieldWidth} height={fieldHeight} fill={'hsl(var(--primary))'} />
       
-      {/* Yard Lines */}
       {[...Array(15)].map((_, i) => {
         const y = 50 + i * 50;
-        const isMajor = (i + 1) % 2 !== 0; // Every 10 yards
+        const isMajor = (i + 1) % 2 !== 0; 
         return (
           <line
             key={i}
@@ -60,10 +59,13 @@ export function Field({
   return (
     <div
       className="relative w-full aspect-[53.33/80] touch-none select-none bg-primary rounded-lg overflow-hidden shadow-lg"
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
+      onMouseDown={onDrawStart}
+      onMouseMove={onDrawMove}
+      onMouseUp={onDrawEnd}
+      onMouseLeave={onDrawEnd}
+      onTouchStart={onDrawStart}
+      onTouchMove={onDrawMove}
+      onTouchEnd={onDrawEnd}
     >
       <FieldSVG />
       <svg
@@ -100,7 +102,7 @@ export function Field({
         <PlayerIcon
           key={player.id}
           player={player}
-          onMouseDown={onPlayerMouseDown}
+          onPlayerAction={onPlayerAction}
         />
       ))}
     </div>

@@ -5,10 +5,10 @@ import { Circle } from 'lucide-react';
 
 interface PlayerIconProps {
   player: Player;
-  onMouseDown: (e: React.MouseEvent<HTMLDivElement>, id: string) => void;
+  onPlayerAction: (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>, id: string) => void;
 }
 
-export function PlayerIcon({ player, onMouseDown }: PlayerIconProps) {
+export function PlayerIcon({ player, onPlayerAction }: PlayerIconProps) {
   const fieldWidth = 533.33;
   const fieldHeight = 800;
 
@@ -32,7 +32,8 @@ export function PlayerIcon({ player, onMouseDown }: PlayerIconProps) {
     <div
       style={style}
       className={cn(commonClasses, sizeClasses, 'shadow-md transition-shadow hover:shadow-xl', typeStyles[player.type])}
-      onMouseDown={(e) => onMouseDown(e, player.id)}
+      onMouseDown={(e) => onPlayerAction(e, player.id)}
+      onTouchStart={(e) => onPlayerAction(e, player.id)}
     >
       {player.type === 'qb' ? (
         'QB'
