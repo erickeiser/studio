@@ -1,8 +1,10 @@
+export type PlayerType = 'qb' | 'red' | 'blue' | 'yellow';
+
 export interface Player {
   id: string;
   x: number;
   y: number;
-  type: 'offense' | 'defense';
+  type: PlayerType;
 }
 
 export interface Route {

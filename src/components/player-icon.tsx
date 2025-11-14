@@ -1,48 +1,42 @@
 import type React from 'react';
 import { Player } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { X, Circle } from 'lucide-react';
+import { Circle } from 'lucide-react';
 
 interface PlayerIconProps {
   player: Player;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>, id: string) => void;
-  printable?: boolean;
 }
 
-export function PlayerIcon({ player, onMouseDown, printable = false }: PlayerIconProps) {
+export function PlayerIcon({ player, onMouseDown }: PlayerIconProps) {
+  const fieldWidth = 533.33;
+  const fieldHeight = 800;
+
   const style = {
-    left: `${(player.x / 1200) * 100}%`,
-    top: `${(player.y / 533.33) * 100}%`,
+    left: `${(player.x / fieldWidth) * 100}%`,
+    top: `${(player.y / fieldHeight) * 100}%`,
   };
 
   const commonClasses = 'absolute -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center cursor-pointer select-none';
-  const sizeClasses = 'w-7 h-7';
+  const sizeClasses = 'w-8 h-8';
 
-  if (printable) {
-    return (
-      <div style={style} className={cn(commonClasses, sizeClasses, 'border-2 border-black bg-white')}>
-        {player.type === 'offense' ? (
-          <Circle className="w-5 h-5 text-black" />
-        ) : (
-          <X className="w-5 h-5 text-black" />
-        )}
-      </div>
-    );
-  }
+  const typeStyles = {
+    qb: 'bg-gray-200 border-2 border-black text-black text-sm font-bold',
+    red: 'bg-red-500 border-2 border-red-300 text-white',
+    blue: 'bg-blue-500 border-2 border-blue-300 text-white',
+    yellow: 'bg-yellow-400 border-2 border-yellow-200 text-black',
+  };
 
   return (
     <div
       style={style}
-      className={cn(commonClasses, sizeClasses, 'shadow-md transition-shadow hover:shadow-xl', {
-        'bg-blue-500 border-2 border-blue-300 text-white': player.type === 'offense',
-        'bg-red-500 border-2 border-red-300 text-white': player.type === 'defense',
-      })}
+      className={cn(commonClasses, sizeClasses, 'shadow-md transition-shadow hover:shadow-xl', typeStyles[player.type])}
       onMouseDown={(e) => onMouseDown(e, player.id)}
     >
-      {player.type === 'offense' ? (
-        <Circle className="w-5 h-5 fill-current" />
+      {player.type === 'qb' ? (
+        'QB'
       ) : (
-        <X className="w-5 h-5" />
+        <Circle className="w-6 h-6 fill-current" />
       )}
     </div>
   );
