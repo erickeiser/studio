@@ -25,6 +25,7 @@ export function PlayerIcon({ player, onMouseDown }: PlayerIconProps) {
     red: 'bg-red-500 border-2 border-red-300 text-white',
     blue: 'bg-blue-500 border-2 border-blue-300 text-white',
     yellow: 'bg-yellow-400 border-2 border-yellow-200 text-black',
+    green: 'bg-green-500 border-2 border-green-300 text-white',
   };
 
   return (

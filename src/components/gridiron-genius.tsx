@@ -149,6 +149,7 @@ export function GridironGenius() {
               <Button variant="outline" size="sm" onClick={() => addPlayer('red')} className="w-full justify-start"><Circle className="mr-2 h-4 w-4 fill-red-500 text-red-500" /> Add Red</Button>
               <Button variant="outline" size="sm" onClick={() => addPlayer('blue')} className="w-full justify-start"><Circle className="mr-2 h-4 w-4 fill-blue-500 text-blue-500" /> Add Blue</Button>
               <Button variant="outline" size="sm" onClick={() => addPlayer('yellow')} className="w-full justify-start"><Circle className="mr-2 h-4 w-4 fill-yellow-400 text-yellow-400" /> Add Yellow</Button>
+              <Button variant="outline" size="sm" onClick={() => addPlayer('green')} className="w-full justify-start"><Circle className="mr-2 h-4 w-4 fill-green-500 text-green-500" /> Add Green</Button>
             </CardContent>
           </Card>
 

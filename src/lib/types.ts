@@ -1,4 +1,4 @@
-export type PlayerType = 'qb' | 'red' | 'blue' | 'yellow';
+export type PlayerType = 'qb' | 'red' | 'blue' | 'yellow' | 'green';
 
 export interface Player {
   id: string;
