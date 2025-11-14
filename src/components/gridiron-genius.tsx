@@ -9,6 +9,7 @@ import {
   MousePointer,
   Circle,
   Save,
+  Undo,
 } from 'lucide-react';
 import { doc, collection } from 'firebase/firestore';
 
@@ -29,8 +30,12 @@ const getUniqueId = () => (idCounter++).toString();
 
 
 export function GridironGenius() {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [routes, setRoutes] = useState<Route[]>([]);
+  const [history, setHistory] = useState<{ players: Player[]; routes: Route[] }[]>([{ players: [], routes: [] }]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+
+  const players = history[historyIndex].players;
+  const routes = history[historyIndex].routes;
+
   const [activeTool, setActiveTool] = useState<Tool>('cursor');
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingPath, setDrawingPath] = useState<string | null>(null);
@@ -47,6 +52,19 @@ export function GridironGenius() {
       initiateAnonymousSignIn();
     }
   }, [isUserLoading, user]);
+
+  const updateState = (newPlayers: Player[], newRoutes: Route[]) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ players: newPlayers, routes: newRoutes });
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+    }
+  };
 
   const getCoords = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!fieldRef.current) return { x: 0, y: 0 };
@@ -65,7 +83,7 @@ export function GridironGenius() {
       y: 800 / 2,
       type,
     };
-    setPlayers(prev => [...prev, newPlayer]);
+    updateState([...players, newPlayer], routes);
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -84,13 +102,15 @@ export function GridironGenius() {
     } else if (draggedPlayerId) {
       const fieldWidth = 533.33;
       const fieldHeight = 800;
-      setPlayers(prev =>
-        prev.map(p =>
-          p.id === draggedPlayerId
-            ? { ...p, x: Math.min(Math.max(x, 15), fieldWidth - 15), y: Math.min(Math.max(y, 15), fieldHeight - 15) }
-            : p
-        )
+      const newPlayers = players.map(p =>
+        p.id === draggedPlayerId
+          ? { ...p, x: Math.min(Math.max(x, 15), fieldWidth - 15), y: Math.min(Math.max(y, 15), fieldHeight - 15) }
+          : p
       );
+      // We don't want to create a history entry for every mouse move, so we update the current state directly
+      const currentHistory = [...history];
+      currentHistory[historyIndex] = { ...currentHistory[historyIndex], players: newPlayers };
+      setHistory(currentHistory);
     }
   };
 
@@ -102,7 +122,10 @@ export function GridironGenius() {
         style: activeTool === 'draw-dashed' ? 'dashed' : 'solid',
         color: 'hsl(var(--accent))',
       };
-      setRoutes(prev => [...prev, newRoute]);
+      updateState(players, [...routes, newRoute]);
+    } else if (draggedPlayerId) {
+      // Finalize player position in history
+      updateState(players, routes);
     }
     setIsDrawing(false);
     setDrawingPath(null);
@@ -114,13 +137,13 @@ export function GridironGenius() {
     if (activeTool === 'cursor') {
       setDraggedPlayerId(id);
     } else if (activeTool === 'eraser') {
-      setPlayers(prev => prev.filter(p => p.id !== id));
+      const newPlayers = players.filter(p => p.id !== id);
+      updateState(newPlayers, routes);
     }
   };
 
   const clearField = () => {
-    setPlayers([]);
-    setRoutes([]);
+    updateState([], []);
   };
 
   const handleSavePlay = async (playName: string) => {
@@ -222,6 +245,10 @@ export function GridironGenius() {
               <CardTitle className="text-lg">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
+               <Button variant="outline" size="sm" onClick={handleUndo} className="w-full" disabled={historyIndex === 0}>
+                <Undo className="mr-2 h-4 w-4" />
+                Undo
+              </Button>
               <Button variant="default" size="sm" onClick={() => setIsSaveDialogOpen(true)} className="w-full" disabled={isUserLoading || !user}>
                 <Save className="mr-2 h-4 w-4" />
                 {isUserLoading ? 'Loading...' : 'Save Play'}
