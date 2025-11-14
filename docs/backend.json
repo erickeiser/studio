@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "Playbook": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Playbook",
+      "type": "object",
+      "description": "Represents a user's collection of saved plays.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Playbook entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Playbook)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the playbook (e.g., 'Offensive Plays', 'Defensive Strategies')."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of the playbook."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name"
+      ]
+    },
+    "Play": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Play",
+      "type": "object",
+      "description": "Represents a saved football play.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Play entity."
+        },
+        "playbookId": {
+          "type": "string",
+          "description": "Reference to Playbook. (Relationship: Playbook 1:N Play)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name given to the play by the user."
+        },
+        "diagram": {
+          "type": "string",
+          "description": "Stringified JSON of play diagram data (player positions, routes, etc.)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional user-provided description of the play."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the play was created.",
+          "format": "date-time"
+        },
+        "lastModified": {
+          "type": "string",
+          "description": "Timestamp of when the play was last modified.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "playbookId",
+        "name",
+        "diagram",
+        "createdAt",
+        "lastModified"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.  Note: Authentication details (passwords, etc.) are assumed to be handled by an external authentication system and are NOT stored in this entity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "username": {
+          "type": "string",
+          "description": "User's chosen username."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "username"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection of users. User documents contain profile information such as email and username.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/playbooks/{playbookId}",
+        "definition": {
+          "entityName": "Playbook",
+          "schema": {
+            "$ref": "#/backend/entities/Playbook"
+          },
+          "description": "Collection of playbooks owned by a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "playbookId",
+              "description": "The unique identifier for the playbook."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/playbooks/{playbookId}/plays/{playId}",
+        "definition": {
+          "entityName": "Play",
+          "schema": {
+            "$ref": "#/backend/entities/Play"
+          },
+          "description": "Collection of plays within a specific playbook, owned by a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "playbookId",
+              "description": "The unique identifier for the playbook."
+            },
+            {
+              "name": "playId",
+              "description": "The unique identifier for the play."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability for the Gridiron Genius application. Plays are organized under user-specific playbooks to maintain data privacy and ownership. This design prioritizes path-based ownership for user data, leveraging hierarchical paths to represent the relationships between users, playbooks, and plays. This approach simplifies security rules and ensures efficient data retrieval.  Denormalization is not needed here because Plays are tightly coupled with Users via the Playbook and path-based authorization is sufficient.\n\nThe structure uses path-based ownership (`/users/{userId}/playbooks/{playbookId}/plays/{playId}`) to secure plays within a playbook.  List operations (QAPs) are naturally secure because users can only access plays within their own playbooks, ensuring no cross-user data leakage. The structure also allows for the implementation of integrity invariants for ownership, timestamps (createdAt, lastModified), and potentially denormalized data if the diagram data grows too large and requires a separate subcollection."
+  }
+}

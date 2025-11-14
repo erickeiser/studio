@@ -1,0 +1,107 @@
+/**
+ * @fileoverview Firestore Security Rules for Gridiron Genius.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for playbooks and plays.
+ * Only authenticated users can create, read, update, or delete their own playbooks and plays.
+ *
+ * Data Structure:
+ * Data is nested under /users/{userId}, creating a clear ownership hierarchy.
+ * - /users/{userId}: User profiles.
+ * - /users/{userId}/playbooks/{playbookId}: Playbooks owned by the user.
+ * - /users/{userId}/playbooks/{playbookId}/plays/{playId}: Plays within a playbook.
+ *
+ * Key Security Decisions:
+ * - Users can only manage their own data (playbooks and plays).
+ * - Listing other users' playbooks or plays is prohibited.
+ * - Data consistency between path and document data is enforced on create and update.
+ *
+ * Denormalization for Authorization:
+ * Authorization is based on the path; no denormalization is needed.
+ * The path-based approach provides a simple and efficient way to manage access control.
+ *
+ * Structural Segregation:
+ * All user-specific data (playbooks and plays) is stored under the /users/{userId} path,
+ * ensuring clear separation and preventing accidental public access.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if the authenticated user is the owner of the document.
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Helper function to check if the authenticated user is the owner of the existing document.
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for the /users/{userId} collection.
+     * @path /users/{userId}
+     * @allow (create) - Authenticated user whose UID matches the userId can create their profile.
+     * @allow (get, update, delete) - Authenticated user whose UID matches the userId can get, update, and delete their profile.
+     * @deny (create) - An unauthenticated user cannot create a user profile.
+     * @deny (get, update, delete) - An unauthenticated user cannot get, update, and delete any user profile.
+     * @deny (create) - Authenticated user with mismatched UID in path cannot create a user profile.
+     * @deny (update) - Authenticated user attempting to change the user ID.
+     * @principle Enforces user-ownership for profile data.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      // Allow the user to create their own profile, enforcing path consistency.
+      allow create: if isSignedIn() && request.auth.uid == userId && request.resource.data.id == userId;
+
+      // Allow updates and deletes only by the owner, enforcing immutability of the user ID.
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/playbooks/{playbookId} collection.
+     * @path /users/{userId}/playbooks/{playbookId}
+     * @allow (create) - Authenticated user whose UID matches the userId can create a playbook for themselves.
+     * @allow (get, update, delete) - Authenticated user whose UID matches the userId can get, update, and delete their playbooks.
+     * @deny (create) - An unauthenticated user cannot create a playbook.
+     * @deny (get, update, delete) - An unauthenticated user cannot get, update, and delete any playbook.
+     * @deny (create) - Authenticated user with mismatched UID in path cannot create a playbook.
+     * @deny (update) - Authenticated user attempting to change the playbook ID.
+     * @principle Enforces user-ownership for playbook data.
+     */
+    match /users/{userId}/playbooks/{playbookId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/playbooks/{playbookId}/plays/{playId} collection.
+     * @path /users/{userId}/playbooks/{playbookId}/plays/{playId}
+     * @allow (create) - Authenticated user whose UID matches the userId can create a play for themselves in a playbook.
+     * @allow (get, update, delete) - Authenticated user whose UID matches the userId can get, update, and delete their plays.
+     * @deny (create) - An unauthenticated user cannot create a play.
+     * @deny (get, update, delete) - An unauthenticated user cannot get, update, and delete any play.
+     * @deny (create) - Authenticated user with mismatched UID in path cannot create a play.
+     * @deny (update) - Authenticated user attempting to change the play ID.
+     * @principle Enforces user-ownership for play data.
+     */
+    match /users/{userId}/playbooks/{playbookId}/plays/{playId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
